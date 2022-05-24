@@ -11,7 +11,6 @@ import UIKit
 class MenuTableViewController: UITableViewController {
 
     let category: String
-    //let menuController = MenuController()
     var menuItems = [MenuItem]()
     var imageLoadTasks: [IndexPath: Task<Void, Never>] = [:]
 
@@ -36,16 +35,7 @@ class MenuTableViewController: UITableViewController {
             value.cancel()
         }
     }
-//        Task.init {
-//            do {
-//                let menuItems = try await
-//                menuController.fetchMenuItems(forCategory: category)
-//                updateUI(with: menuItems)
-//            } catch {
-//                displayError(error, title: "Failed to Fetch Menu Items for \(self.category)")
-//            }
-//        }
-//    }
+    
     func updateUI(with menuItems: [MenuItem]) {
             self.menuItems = menuItems
             self.tableView.reloadData()
@@ -82,31 +72,26 @@ class MenuTableViewController: UITableViewController {
     }
     
     func configure(_ cell: UITableViewCell, forItemAt indexPath:
-                   IndexPath) {
+       IndexPath) {
+        guard let cell = cell as? MenuItemCell else { return }
+    
         let menuItem = menuItems[indexPath.row]
-        
-        var content = cell.defaultContentConfiguration()
-        content.text = menuItem.name
-        content.secondaryText = "$\(menuItem.price)"
-        cell.contentConfiguration = content
-        content.secondaryText = menuItem.price.formatted(.currency(code: "usd"))
-        content.image = UIImage(systemName: "photo.on.rectangle")
-        cell.contentConfiguration = content
-//        Task.init {
-//            if let image = try? await
-//                MenuController.shared.fetchImage(from: menuItem.imageURL) {
-//                if let currentIndexPath = self.tableView.indexPath(for:
-//                                                                        cell),
-//                   currentIndexPath == indexPath {
-//                    var content = cell.defaultContentConfiguration()
-//                    content.text = menuItem.name
-//                    content.secondaryText =
-//                    menuItem.price.formatted(.currency(code: "usd"))
-//                    content.image = image
-//                    cell.contentConfiguration = content
-//                }
-//            }
-//        }
+    
+        cell.itemName = menuItem.name
+        cell.price = menuItem.price
+        cell.image = nil
+    
+        imageLoadTasks[indexPath] = Task.init {
+            if let image = try? await
+               MenuController.shared.fetchImage(from: menuItem.imageURL) {
+                if let currentIndexPath = self.tableView.indexPath(for:
+                   cell),
+                      currentIndexPath == indexPath {
+                    cell.image = image
+                }
+            }
+            imageLoadTasks[indexPath] = nil
+        }
     }
     
     // MARK: - Table view data source
